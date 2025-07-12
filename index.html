@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ana - AI Assistant</title>
+    <style>
+        :root {
+            --primary: #6e48aa;
+            --primary-dark: #4a2d7a;
+            --primary-light: #9d7bd8;
+            --secondary: #00c9b7;
+            --text: #2d3748;
+            --text-light: #4a5568;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            touch-action: pan-y;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            position: fixed; /* Prevent scrolling on body */
+        }
+
+        @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 400;
+            src: url(https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiA.woff2) format('woff2');
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .welcome-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            animation: fadeOut 1s ease 2s forwards;
+        }
+
+        .welcome-screen h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #fff, #d1d5db);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .welcome-screen p {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .welcome-logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .welcome-logo svg {
+            width: 40px;
+            height: 40px;
+            fill: white;
+        }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        .main-ui {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            background-color: var(--bg);
+            position: relative;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow);
+            z-index: 10;
+            position: relative;
+        }
+
+        .chat-header-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .chat-header-icon {
+            width: 32px;
+            height: 32px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-header-icon svg {
+            width: 16px;
+            height: 16px;
+            fill: white;
+        }
+
+        .chat-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .menu-button {
+            background: none;
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .menu-button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100% - 60px);
+            width: 100%;
+            position: relative;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 80px; /* Space for input */
+        }
+
+        .chat-messages {
+            padding: 1.5rem;
+            min-height: calc(100% - 80px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            max-width: 85%;
+            margin-bottom: 1rem;
+            padding: 0.75rem 1.25rem;
+            border-radius: 1.25rem;
+            line-height: 1.5;
+            position: relative;
+            animation: fadeIn 0.3s ease;
+            font-size: 1rem;
+            word-wrap: break-word;
+        }
+
+        .bot-message {
+            background-color: var(--card);
+            color: var(--text);
+            border-bottom-left-radius: 0.25rem;
+            align-self: flex-start;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            border-bottom-right-radius: 0.25rem;
+            margin-left: auto;
+            box-shadow: var(--shadow);
+        }
+
+        .input-section {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--card);
+            border-top: 1px solid var(--border);
+            padding: 1rem;
+            z-index: 10;
+        }
+
+        .quick-actions {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 0.75rem 1rem;
+            gap: 0.5rem;
+            background-color: var(--card);
+            border-top: 1px solid var(--border);
+        }
+
+        .quick-action {
+            background-color: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-light);
+        }
+
+        .quick-action:hover {
+            background-color: white;
+            color: var(--primary);
+            border-color: var(--primary-light);
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 0.75rem;
+            width: 100%;
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 0.75rem 1.25rem;
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            outline: none;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s;
+            background-color: var(--bg);
+        }
+
+        #user-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(110, 72, 170, 0.1);
+        }
+
+        #send-button {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: var(--shadow);
+            flex-shrink: 0;
+        }
+
+        #send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px -1px rgba(110, 72, 170, 0.3);
+        }
+
+        #send-button svg {
+            width: 20px;
+            height: 20px;
+            fill: white;
+        }
+
+        .typing-indicator {
+            display: flex;
+            padding: 0.75rem 1.25rem;
+            background-color: var(--card);
+            border-radius: 1.25rem;
+            margin-bottom: 1rem;
+            width: fit-content;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--primary);
+            border-radius: 50%;
+            margin: 0 3px;
+            animation: typingAnimation 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        .menu-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--card);
+            z-index: 20;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .menu-screen.active {
+            transform: translateX(0);
+        }
+
+        .menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .menu-header h2 {
+            font-size: 1.5rem;
+            color: var(--primary-dark);
+        }
+
+        .close-menu {
+            background: none;
+            border: none;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+            color: var(--text-light);
+            transition: background-color 0.2s;
+        }
+
+        .close-menu:hover {
+            background-color: var(--bg);
+        }
+
+        .menu-category {
+            margin-bottom: 1.5rem;
+        }
+
+        .menu-title {
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .menu-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background-color: var(--bg);
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .menu-item:hover {
+            background-color: white;
+            transform: translateX(4px);
+            box-shadow: var(--shadow);
+            border-color: var(--primary-light);
+        }
+
+        .menu-item-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary);
+            border-radius: 6px;
+        }
+
+        .menu-item-icon svg {
+            width: 14px;
+            height: 14px;
+            fill: white;
+        }
+
+        .menu-item-text {
+            flex: 1;
+            font-size: 0.9375rem;
+        }
+
+        .history-item {
+            padding: 0.75rem 1rem;
+            background-color: var(--bg);
+            border-radius: 0.75rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+        }
+
+        .history-item:hover {
+            background-color: white;
+            box-shadow: var(--shadow);
+            border-color: var(--primary-light);
+        }
+
+        .history-item-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: var(--primary-dark);
+        }
+
+        .history-item-preview {
+            font-size: 0.8125rem;
+            color: var(--text-light);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .pull-to-refresh {
+            position: absolute;
+            top: -50px;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--primary);
+            font-weight: 600;
+            transition: transform 0.3s;
+            font-size: 0.875rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; visibility: hidden; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes typingAnimation {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+
+        /* Tablet and Desktop Styles */
+        @media (min-width: 768px) {
+            .app-container {
+                flex-direction: row;
+            }
+            
+            .menu-screen {
+                width: 320px;
+                position: relative;
+                transform: translateX(0);
+                border-right: 1px solid var(--border);
+            }
+            
+            .menu-button {
+                display: none;
+            }
+            
+            .main-ui {
+                width: calc(100% - 320px);
+            }
+
+            .input-section {
+                position: relative;
+                padding-bottom: 0;
+            }
+
+            .chat-container {
+                height: calc(100% - 60px);
+            }
+
+            .messages-container {
+                padding-bottom: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="welcome-screen" id="welcome-screen">
+        <div class="welcome-logo">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            </svg>
+        </div>
+        <h1>Ana AI Assistant</h1>
+        <p>Your premium AI companion for learning and entertainment</p>
+        <div class="loader"></div>
+    </div>
+
+    <div class="app-container" id="app-container">
+        <div class="pull-to-refresh" id="pull-to-refresh">
+            ↻ Pull down to refresh
+        </div>
+        
+        <div class="menu-screen" id="menu-screen">
+            <div class="menu-header">
+                <h2>Ana Menu</h2>
+                <button class="close-menu" id="close-menu">
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="menu-category">
+                <div class="menu-title">Quick Actions</div>
+                <div class="menu-items">
+                    <a class="menu-item" onclick="quickMessage('Tell me a joke!')">
+                        <div class="menu-item-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-5-9h10v2H7z"/>
+                            </svg>
+                        </div>
+                        <div class="menu-item-text">Tell a Joke</div>
+                    </a>
+                    <a class="menu-item" onclick="quickMessage('I feel sad')">
+                        <div class="menu-item-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-5-5h10v2H7zm1-4h2v2H8zm4 0h2v2h-2zm4 0h2v2h-2z"/>
+                            </svg>
+                        </div>
+                        <div class="menu-item-text">Comfort Me</div>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="menu-category">
+                <div class="menu-title">Learning</div>
+                <div class="menu-items">
+                    <a class="menu-item" onclick="quickMessage('Help me with math')">
+                        <div class="menu-item-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                            </svg>
+                        </div>
+                        <div class="menu-item-text">Math Help</div>
+                    </a>
+                    <a class="menu-item" onclick="quickMessage('Help me with reading')">
+                        <div class="menu-item-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM8 20H4v-4h4v4zm0-6H4v-4h4v4zm0-6H4V4h4v4zm6 12h-4v-4h4v4zm0-6h-4v-4h4v4zm0-6h-4V4h4v4zm6 12h-4v-4h4v4zm0-6h-4v-4h4v4zm0-6h-4V4h4v4z"/>
+                            </svg>
+                        </div>
+                        <div class="menu-item-text">Reading Help</div>
+                    </a>
+                    <a class="menu-item" onclick="quickMessage('Teach me about science')">
+                        <div class="menu-item-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M19.8 18.4L14 10.67V6.5l1.35-1.69c.26-.33.03-.81-.39-.81H9.04c-.42 0-.65.48-.39.81L10 6.5v4.17L4.2 18.4c-.49.66-.02 1.6.8 1.6h14c.82 0 1.29-.94.8-1.6z"/>
+                            </svg>
+                        </div>
+                        <div class="menu-item-text">Science Help</div>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="menu-category">
+                <div class="menu-title">Minecraft</div>
+                <div class="menu-items">
+                    <a class="menu-item" onclick="quickMessage('Tell me about Minecraft builds')">
+                        <div class="menu-item-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M18 10V7.17c0-1.62-1.22-3.08-2.84-3.17-1.21-.06-2.27.59-2.8 1.57-.35.65.17 1.43.91 1.43h.01c.34 0 .65-.18.8-.47.17-.29.48-.47.81-.47h.06c.55 0 .99.44.99.99V10h1.98c.55 0 .99.44.99.99v1.97c0 .55-.44.99-.99.99H18v1.95c0 .55-.44.99-.99.99h-1.97c-.55 0-.99-.44-.99-.99V14H6v3c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-3h1c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1h-2zm-5 3v2h-2v-2h2zM8 6c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
+                            </svg>
+                        </div>
+                        <div class="menu-item-text">Building Ideas</div>
+                    </a>
+                    <a class="menu-item" onclick="quickMessage('Tell me Minecraft tips')">
+                        <div class="menu-item-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                            </svg>
+                        </div>
+                        <div class="menu-item-text">Game Tips</div>
+                    </a>
+                    <a class="menu-item" onclick="quickMessage('Tell me about Minecraft mobs')">
+                        <div class="menu-item-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M15.5 14h-.79l-.28-.27c1.2-1.4 1.82-3.31 1.48-5.34-.47-2.78-2.79-5-5.59-5.34-4.23-.52-7.79 3.04-7.27 7.27.34 2.8 2.56 5.12 5.34 5.59 2.03.34 3.94-.28 5.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                            </svg>
+                        </div>
+                        <div class="menu-item-text">Mobs & Creatures</div>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="menu-category chat-history">
+                <div class="menu-title">Chat History</div>
+                <div id="history-list">
+                    <!-- Chat history will be added here -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-ui" id="main-ui">
+            <div class="chat-header">
+                <button class="menu-button" id="menu-button">
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                    </svg>
+                </button>
+                <div class="chat-header-title">
+                    <div class="chat-header-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                        </svg>
+                    </div>
+                    <h2>Ana AI Assistant</h2>
+                </div>
+                <div style="width: 40px;"></div> <!-- Spacer for alignment -->
+            </div>
+            
+            <div class="chat-container">
+                <div class="messages-container">
+                    <div class="chat-messages" id="chat-messages">
+                        <!-- Messages will appear here -->
+                    </div>
+                </div>
+                
+                <div class="quick-actions">
+                    <button class="quick-action" onclick="quickMessage('Tell me a joke!')">Joke</button>
+                    <button class="quick-action" onclick="quickMessage('Help me with math')">Math</button>
+                    <button class="quick-action" onclick="quickMessage('Tell me about Minecraft')">Minecraft</button>
+                    <button class="quick-action" onclick="quickMessage('I need cheering up')">Comfort</button>
+                </div>
+                
+                <div class="input-section">
+                    <div class="chat-input-container">
+                        <input type="text" id="user-input" placeholder="Message Ana..." autocomplete="off">
+                        <button id="send-button">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chat history storage
+        let chatHistory = [];
+        let currentChat = [];
+        
+        // Speech synthesis setup
+        const synth = window.speechSynthesis;
+        let voices = [];
+        let selectedVoice = null;
+        
+        // Pull to refresh variables
+        let startY = 0;
+        let currentY = 0;
+        let isRefreshing = false;
+        const pullToRefresh = document.getElementById('pull-to-refresh');
+        const appContainer = document.getElementById('app-container');
+        
+        // Initialize the app
+        function init() {
+            // Hide welcome message after animation
+            setTimeout(() => {
+                document.getElementById('welcome-screen').style.display = 'none';
+                // Add initial greeting
+                setTimeout(() => {
+                    const greeting = "Hello! I'm Ana, your premium AI assistant. How can I help you today?";
+                    addMessage(greeting);
+                    speakWithPremiumVoice(greeting);
+                }, 300);
+            }, 3000);
+            
+            // Set up voice
+            setupPremiumVoice();
+            
+            // Set up pull to refresh
+            setupPullToRefresh();
+            
+            // Set up event listeners
+            setupEventListeners();
+        }
+        
+        function setupPremiumVoice() {
+            function populateVoices() {
+                voices = synth.getVoices();
+                
+                // Try to find the most premium sounding voice available
+                const premiumVoices = [
+                    voices.find(voice => voice.name.includes('Google UK English Female')),
+                    voices.find(voice => voice.name.includes('Microsoft Zira')),
+                    voices.find(voice => voice.name.includes('Samantha')),
+                    voices.find(voice => voice.name.includes('Karen')), // Australian voice on Mac
+                    voices.find(voice => voice.name.includes('Tessa')), // South African voice on Mac
+                    voices.find(voice => voice.name.includes('Female') && voice.lang.includes('en')),
+                    voices[0] // Fallback to first available voice
+                ].filter(Boolean);
+                
+                selectedVoice = premiumVoices[0];
+                
+                // If we're on Chrome and have access to the Web Speech API voices
+                if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
+                    speechSynthesis.onvoiceschanged = populateVoices;
+                }
+            }
+            
+            // Load voices
+            populateVoices();
+        }
+        
+        function speakWithPremiumVoice(text) {
+            if (synth.speaking) {
+                synth.cancel();
+            }
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            // Configure for premium voice experience
+            utterance.voice = selectedVoice;
+            utterance.rate = 0.92; // Slightly slower for clarity
+            utterance.pitch = 1.05; // Slightly higher pitch
+            utterance.volume = 1.0;
+            
+            // Advanced voice configuration
+            utterance.lang = 'en-US';
+            utterance.text = text;
+            
+            // Event listeners for better control
+            utterance.onstart = () => {
+                console.log('Premium voice started speaking');
+            };
+            
+            utterance.onend = () => {
+                console.log('Premium voice finished speaking');
+            };
+            
+            utterance.onerror = (event) => {
+                console.error('Speech error:', event);
+            };
+            
+            synth.speak(utterance);
+        }
+        
+        function setupPullToRefresh() {
+            appContainer.addEventListener('touchstart', (e) => {
+                if (window.scrollY === 0 && !isRefreshing) {
+                    startY = e.touches[0].clientY;
+                }
+            }, { passive: true });
+            
+            appContainer.addEventListener('touchmove', (e) => {
+                if (window.scrollY === 0 && !isRefreshing) {
+                    currentY = e.touches[0].clientY;
+                    const diff = currentY - startY;
+                    
+                    if (diff > 0) {
+                        e.preventDefault();
+                        pullToRefresh.style.transform = `translateY(${Math.min(diff, 100)}px)`;
+                        
+                        if (diff > 100) {
+                            isRefreshing = true;
+                            pullToRefresh.textContent = '🌀 Refreshing...';
+                            refreshChat();
+                        }
+                    }
+                }
+            }, { passive: false });
+            
+            appContainer.addEventListener('touchend', () => {
+                if (!isRefreshing) {
+                    pullToRefresh.style.transform = 'translateY(0)';
+                }
+            }, { passive: true });
+        }
+        
+        function refreshChat() {
+            // Clear current chat
+            currentChat = [];
+            document.getElementById('chat-messages').innerHTML = '';
+            
+            // Show new greeting
+            setTimeout(() => {
+                const greeting = "Hello again! What would you like to talk about now?";
+                addMessage(greeting);
+                speakWithPremiumVoice(greeting);
+                
+                // Reset pull to refresh
+                setTimeout(() => {
+                    pullToRefresh.style.transform = 'translateY(0)';
+                    pullToRefresh.textContent = '↻ Pull down to refresh';
+                    isRefreshing = false;
+                }, 500);
+            }, 1000);
+        }
+        
+        function setupEventListeners() {
+            const chatMessages = document.getElementById('chat-messages');
+            const userInput = document.getElementById('user-input');
+            const sendButton = document.getElementById('send-button');
+            const menuButton = document.getElementById('menu-button');
+            const menuScreen = document.getElementById('menu-screen');
+            const closeMenu = document.getElementById('close-menu');
+            const historyList = document.getElementById('history-list');
+            
+            // Menu toggle
+            menuButton.addEventListener('click', () => {
+                menuScreen.classList.add('active');
+                updateHistoryList();
+            });
+            
+            closeMenu.addEventListener('click', () => {
+                menuScreen.classList.remove('active');
+            });
+            
+            // Send message
+            sendButton.addEventListener('click', sendMessage);
+            
+            userInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        }
+        
+        function addMessage(message, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
+            messageDiv.innerHTML = message;
+            document.getElementById('chat-messages').appendChild(messageDiv);
+            document.querySelector('.messages-container').scrollTop = document.querySelector('.messages-container').scrollHeight;
+            
+            // Add to current chat
+            currentChat.push({
+                text: message,
+                isUser: isUser,
+                timestamp: new Date()
+            });
+        }
+        
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.classList.add('typing-indicator');
+            typingDiv.id = 'typing-indicator';
+            typingDiv.innerHTML = `
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            `;
+            document.getElementById('chat-messages').appendChild(typingDiv);
+            document.querySelector('.messages-container').scrollTop = document.querySelector('.messages-container').scrollHeight;
+        }
+        
+        function hideTypingIndicator() {
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+        
+        function quickMessage(message) {
+            document.getElementById('user-input').value = message;
+            sendMessage();
+            document.getElementById('menu-screen').classList.remove('active');
+        }
+        
+        function sendMessage() {
+            const message = document.getElementById('user-input').value.trim();
+            if (message === '') return;
+            
+            addMessage(message, true);
+            document.getElementById('user-input').value = '';
+            
+            showTypingIndicator();
+            
+            // Simulate thinking time
+            setTimeout(() => {
+                hideTypingIndicator();
+                const response = getBotResponse(message);
+                addMessage(response);
+                speakWithPremiumVoice(response);
+                
+                // Save chat if it's substantial
+                if (currentChat.length > 2) {
+                    saveChat();
+                }
+            }, 1000 + Math.random() * 2000);
+        }
+        
+        function saveChat() {
+            // Only save if we have both user and bot messages
+            const hasUserMessages = currentChat.some(msg => msg.isUser);
+            const hasBotMessages = currentChat.some(msg => !msg.isUser);
+            
+            if (hasUserMessages && hasBotMessages) {
+                chatHistory.push({
+                    messages: [...currentChat],
+                    timestamp: new Date()
+                });
+                currentChat = [];
+                
+                // Keep only the last 10 chats
+                if (chatHistory.length > 10) {
+                    chatHistory.shift();
+                }
+            }
+        }
+        
+        function updateHistoryList() {
+            const historyList = document.getElementById('history-list');
+            historyList.innerHTML = '';
+            
+            if (chatHistory.length === 0) {
+                const noHistory = document.createElement('div');
+                noHistory.className = 'history-item';
+                noHistory.textContent = 'No chat history yet';
+                historyList.appendChild(noHistory);
+                return;
+            }
+            
+            chatHistory.forEach((chat, index) => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                
+                // Find the first user message as preview
+                const firstUserMessage = chat.messages.find(msg => msg.isUser);
+                const preview = firstUserMessage ? firstUserMessage.text : 'Chat';
+                
+                historyItem.innerHTML = `
+                    <div class="history-item-title">Chat ${chatHistory.length - index}</div>
+                    <div class="history-item-preview">${preview}</div>
+                `;
+                
+                historyItem.addEventListener('click', () => {
+                    loadChat(index);
+                    document.getElementById('menu-screen').classList.remove('active');
+                });
+                
+                historyList.appendChild(historyItem);
+            });
+        }
+        
+        function loadChat(index) {
+            if (index < 0 || index >= chatHistory.length) return;
+            
+            // Clear current chat
+            document.getElementById('chat-messages').innerHTML = '';
+            currentChat = [...chatHistory[index].messages];
+            
+            // Replay the chat
+            currentChat.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message');
+                messageDiv.classList.add(msg.isUser ? 'user-message' : 'bot-message');
+                messageDiv.innerHTML = msg.text;
+                document.getElementById('chat-messages').appendChild(messageDiv);
+            });
+            
+            document.querySelector('.messages-container').scrollTop = document.querySelector('.messages-container').scrollHeight;
+        }
+        
+        function getBotResponse(message) {
+            const lowerMsg = message.toLowerCase();
+            
+            // Greetings
+            if (lowerMsg.includes('hi') || lowerMsg.includes('hello') || lowerMsg.includes('hey')) {
+                return "Hello! 👋 I'm Ana, your premium AI assistant. How can I help you today?";
+            }
+            
+            // Feelings
+            if (lowerMsg.includes('sad') || lowerMsg.includes('unhappy') || lowerMsg.includes('upset')) {
+                const encouragements = [
+                    "I'm sorry to hear you're feeling down. Remember, even the darkest nights end with a sunrise. You've got this! ☀️",
+                    "You're stronger than you think. Whatever you're going through, I'm here to support you. 💪",
+                    "When I need cheering up, I think about puppies, rainbows, and building amazing things in Minecraft! What makes you happy? 🌈",
+                    "You're an incredible person who makes the world brighter just by being you. Don't forget that. ✨"
+                ];
+                return encouragements[Math.floor(Math.random() * encouragements.length)];
+            }
+            
+            // Jokes
+            if (lowerMsg.includes('joke') || lowerMsg.includes('funny')) {
+                const jokes = [
+                    "Why don't scientists trust atoms? Because they make up everything!",
+                    "What do you call a fake noodle? An impasta!",
+                    "Why did the scarecrow win an award? Because he was outstanding in his field!",
+                    "How do you organize a space party? You planet!",
+                    "What's brown and sticky? A stick!",
+                    "Why did the math book look sad? Because it had too many problems!",
+                    "What do you call a bear with no teeth? A gummy bear!",
+                    "Why can't your nose be 12 inches long? Because then it would be a foot!"
+                ];
+                return jokes[Math.floor(Math.random() * jokes.length)] + " 😄";
+            }
+            
+            // Math help
+            if (lowerMsg.includes('math') || lowerMsg.includes('add') || lowerMsg.includes('subtract') || 
+                lowerMsg.includes('count') || lowerMsg.includes('number')) {
+                if (lowerMsg.includes('add') || lowerMsg.includes('plus') || lowerMsg.includes('+')) {
+                    // Simple addition help
+                    const num1 = Math.floor(Math.random() * 10) + 1;
+                    const num2 = Math.floor(Math.random() * 10) + 1;
+                    return `Let's practice addition! What is ${num1} + ${num2}? Take your time! When you're ready, type the answer and I'll check it!`;
+                } else if (lowerMsg.includes('subtract') || lowerMsg.includes('minus') || lowerMsg.includes('-')) {
+                    // Simple subtraction help
+                    const num1 = Math.floor(Math.random() * 10) + 5;
+                    const num2 = Math.floor(Math.random() * 5) + 1;
+                    return `Let's practice subtraction! What is ${num1} - ${num2}? You can use your fingers to count!`;
+                } else {
+                    return "I love math! Would you like help with addition or subtraction? You can say 'help me add 3 + 4' or 'show me subtraction'!";
+                }
+            }
+            
+            // Reading help
+            if (lowerMsg.includes('read') || lowerMsg.includes('spell') || lowerMsg.includes('word')) {
+                if (lowerMsg.includes('spell')) {
+                    const words = ['happy', 'sunshine', 'butterfly', 'elephant', 'giraffe', 'rainbow'];
+                    const word = words[Math.floor(Math.random() * words.length)];
+                    return `Let's practice spelling! Can you spell the word "${word}"? Take your time!`;
+                } else if (lowerMsg.includes('story')) {
+                    const stories = [
+                        "Once upon a time, a little squirrel named Nutty was gathering acorns for winter. She found a magic acorn that granted wishes! What do you think she wished for?",
+                        "There was a friendly dragon who was afraid of fire! All the other dragons laughed, but he discovered he was great at blowing bubbles instead! 🐉💭",
+                        "A little robot named Beep wanted to go to school, but he was different from all the human children. Then one day, his math skills saved the class from a tricky problem! 🤖➕"
+                    ];
+                    return stories[Math.floor(Math.random() * stories.length)];
+                } else {
+                    return "Reading is so much fun! Would you like me to tell you a story or help you practice spelling some words?";
+                }
+            }
+            
+            // Science help
+            if (lowerMsg.includes('science') || lowerMsg.includes('animal') || lowerMsg.includes('plant')) {
+                const facts = [
+                    "Did you know butterflies taste with their feet? They have taste sensors on their legs! 🦋",
+                    "A group of flamingos is called a 'flamboyance'! Isn't that a fun word? 🦩",
+                    "The heart of a shrimp is located in its head! 🦐",
+                    "Sloths only poop once a week! They come down from trees to do it! 🦥",
+                    "A cloud can weigh more than a million pounds! But it floats because the air holds it up! ☁️"
+                ];
+                return facts[Math.floor(Math.random() * facts.length)] + " Would you like to learn more fun facts?";
+            }
+            
+            // Minecraft help
+            if (lowerMsg.includes('minecraft') || lowerMsg.includes('build') || lowerMsg.includes('mob') || lowerMsg.includes('creeper')) {
+                if (lowerMsg.includes('build') || lowerMsg.includes('house') || lowerMsg.includes('base')) {
+                    const builds = [
+                        "For an epic Minecraft build, try creating a floating island with a waterfall flowing down to the ground! Use glowstone for magical lighting. 🌌",
+                        "A modern treehouse with glass walls and an elevator using water and soul sand bubbles would look amazing in your world! 🌳🏠",
+                        "How about building an underwater dome base with coral reefs and sea lanterns? Use glass panes for a futuristic look! 🌊",
+                        "For beginners, a cozy hobbit hole in a hillside with a circular door and fireplace makes a perfect starter home! 🏡"
+                    ];
+                    return builds[Math.floor(Math.random() * builds.length)];
+                } else if (lowerMsg.includes('mob') || lowerMsg.includes('creeper') || lowerMsg.includes('zombie')) {
+                    const mobs = [
+                        "Did you know creepers are afraid of cats? If you have pet cats around your base, creepers will stay away! 🐱💥",
+                        "Skeletons hate sunlight and will burn during the day unless they're in shade or water. Perfect for mob farms! ☀️💀",
+                        "Endermen can't stand water! If one is chasing you, just pour water at your feet to stay safe. 🌊",
+                        "Phantoms only spawn if you haven't slept for 3+ days. They drop phantom membranes which are great for repairing elytra! 🌙"
+                    ];
+                    return mobs[Math.floor(Math.random() * mobs.length)];
+                } else if (lowerMsg.includes('tip') || lowerMsg.includes('trick')) {
+                    const tips = [
+                        "Always carry a water bucket when exploring - it can save you from fall damage by placing water beneath you! 🪣",
+                        "Use torches on the right side of caves only - this way you can always find your way back by keeping torches on your left! 🔦",
+                        "Sleep in a bed at night to skip dangerous mobs and set your spawn point. Beds also explode in the Nether! 💥",
+                        "Combine mending and unbreaking on your tools/armor - they'll last forever when gaining XP! 💎"
+                    ];
+                    return tips[Math.floor(Math.random() * tips.length)];
+                } else {
+                    return "Minecraft is amazing! Would you like building ideas, mob facts, or pro tips?";
+                }
+            }
+            
+            // Thank you responses
+            if (lowerMsg.includes('thank') || lowerMsg.includes('thanks')) {
+                return "You're very welcome! It's my pleasure to assist you. 😊";
+            }
+            
+            // Default responses
+            const defaults = [
+                "That's fascinating! Tell me more about what you're thinking.",
+                "I'd love to help with that! What specifically would you like to know?",
+                "Interesting point! Would you like to explore this topic further?",
+                "As your premium AI assistant, I'm happy to help with studies, Minecraft, or just chatting!",
+                "You're such a curious learner! Would you like to practice math, reading, hear a science fact, or discuss Minecraft?"
+            ];
+            return defaults[Math.floor(Math.random() * defaults.length)];
+        }
+        
+        // Initialize the app when the page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
